@@ -14,8 +14,8 @@ int timer()
         struct timeval time;
         if (gettimeofday(&time, NULL) == -1)
         {
-            perror("Cannot get current time: ");
-            return -1;
+        	perror("Cannot get time ");
+            	return -1;
         };
         int msec = time.tv_sec * 1000 + time.tv_usec / 1000;
         return msec;
@@ -23,11 +23,11 @@ int timer()
 
 void parentCall(int sig, siginfo_t *siginfo, void *context) 
 {
-        printf("%3d PID: %6d PPID: %6d Time: %d PARENT gets %s from %d\n", msgCount, getpid(), getppid(), timer(),strsignal(sig), siginfo->si_pid);
-        usleep(1);
+        printf("%3d PID: %6d PPID: %6d Time: %d PARENT gets SIGUSR%s from %d\n", msgCount, getpid(), getppid(), timer(), strsignal(sig), siginfo->si_pid);
+        usleep(100 * 1000);
         if (kill(0, SIGUSR1) == -1) 
         {
-        	perror("Can not send any signal to any process\n");
+        	perror("Can not send signal\n");
         	exit(-1);
     	}
     	else
@@ -40,11 +40,11 @@ void childCall(int sig, siginfo_t *siginfo, void *context)
         int num;
 	if (pid == children[0]) num = 1;
 	else num = 2;
-	pid_t ppid = getpid();
-    	printf("%3d PID: %6d PPID: %6d Time: %d CHILD%d gets %s\n", msgCount, pid, ppid, timer(), num, strsignal(sig));
+	pid_t ppid = getppid();
+    	printf("%3d PID: %6d PPID: %6d Time: %d CHILD%d gets SIGUSR%s\n", msgCount, pid, ppid, timer(), num, strsignal(sig));
         if (kill(ppid, SIGUSR2) == -1) 
         {
-        	perror("Can not send any signal to any process\n");
+        	perror("Can not send signal\n");
         	exit(-1);
     	}
     	else
@@ -89,18 +89,18 @@ int main(void)
         	switch (children[i]) 
         	{
         	case -1:
-                	perror("Can not create a child process\n");
+                	perror("Can not create a child proc\n");
                 	break;
             	case 0:
                 	children[i] = getpid();
                 	if (sigprocmask(SIG_SETMASK, &usr2, 0) == -1) 
                 	{
-                    		perror("Can not change the signal mask for Child\n");
+                    		perror("Can not change mask for child\n");
                     		return -1;
                 	}
                 	if (sigaction(SIGUSR1, &childAct, NULL) == -1) 
                 	{
-                    		perror("Can not change the action for Child\n");
+                    		perror("Can not change action for child\n");
                     		return -1;
                 	}
                 	printf("PID: %d PPID: %d Time: %d CHILD%d\n", getpid(), getppid(), timer(), i + 1);
@@ -110,19 +110,19 @@ int main(void)
 	printf("PID: %d PPID: %d Time: %d PARENT\n", getpid(), getppid(), timer());
         if (sigprocmask(SIG_SETMASK, &usr1, 0) == -1) 
         {
-        	perror("Can not change the signal mask for Parent\n");
+        	perror("Can not change mask for parent\n");
         	return -1;
     	}
     	if (sigaction(SIGUSR2, &parentAct, NULL) == -1) 
     	{
-        	perror("Can not change the action for Parent\n");
+        	perror("Can not change action for parent\n");
         	return -1;
         }
 
         sleep(1);
         if (kill(0, SIGUSR1) == -1) 
         {
-        	perror("Can not send any signal to any process\n");
+        	perror("Can not send signal\n");
         	return -1;
     	}
     	else
